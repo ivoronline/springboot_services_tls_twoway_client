@@ -23,36 +23,36 @@ public class MyRunner implements CommandLineRunner {
   @Override
   public void run(String... args) throws Exception {
 
-    //LOAD KEY STORE
-    ClassPathResource classPathResource = new ClassPathResource("ClientKeyStore.jks");
-    InputStream       inputStream       = classPathResource.getInputStream();
-    KeyStore          keyStore          = KeyStore.getInstance("JKS");
-                      keyStore.load(inputStream, "mypassword".toCharArray());
+    //LOAD TRUST STORE
+    ClassPathResource trustStoreResource    = new ClassPathResource("ClientTrustStore.jks");
+    InputStream       trustStoreInputStream = trustStoreResource.getInputStream();
+    KeyStore          trustStore            = KeyStore.getInstance("JKS");
+                      trustStore.load(trustStoreInputStream, "mypassword".toCharArray());
 
-    //CREATE SSL CONTEXT
+    //LOAD KEY STORE
+    ClassPathResource keyStoreResource      = new ClassPathResource("ClientKeyStore.jks");
+    InputStream       keyStoreInputStream   = keyStoreResource.getInputStream();
+    KeyStore          keyStore              = KeyStore.getInstance("JKS");
+                      keyStore.load(keyStoreInputStream, "mypassword".toCharArray());
+
+    //SPECIFY TRUST STORE
     SSLContext sslContext = new SSLContextBuilder()
-      .loadTrustMaterial(null, new TrustSelfSignedStrategy())
-      .loadKeyMaterial(keyStore, "mypassword".toCharArray())
+      .loadTrustMaterial(trustStore, null)
+      .loadKeyMaterial  (keyStore, "mypassword".toCharArray())
       .build();
 
-    //CREATE SOCKET FACTORY
+    //PLUMBING
     SSLConnectionSocketFactory socketFactory = new SSLConnectionSocketFactory(
       sslContext,
       NoopHostnameVerifier.INSTANCE
     );
-
-    //CREATE HTTP CLIENT
-    CloseableHttpClient httpClient = HttpClients.custom().setSSLSocketFactory(socketFactory).build();
-
-    //CREATE REQUEST FACTORY
+    CloseableHttpClient                    httpClient     = HttpClients.custom().setSSLSocketFactory(socketFactory).build();
     HttpComponentsClientHttpRequestFactory requestFactory = new HttpComponentsClientHttpRequestFactory(httpClient);
-
-    //CREATE REST TEMPLATE
-    RestTemplate restTemplate = new RestTemplate();
-                 restTemplate.setRequestFactory(requestFactory);
+    RestTemplate                           restTemplate   = new RestTemplate();
+                                           restTemplate.setRequestFactory(requestFactory);
 
     //CALL SERVER
-    String result = restTemplate.getForObject(new URI("https://localhost:8080/Hello"), String.class);
+    String result = restTemplate.getForObject(new URI("https://localhost:8085/Hello"), String.class);
 
     //DISPLAY RESULT
     System.out.println(result);
