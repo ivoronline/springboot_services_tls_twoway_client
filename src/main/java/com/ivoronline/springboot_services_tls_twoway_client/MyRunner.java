@@ -19,39 +19,22 @@ import java.security.KeyStore;
 @Component
 public class MyRunner implements CommandLineRunner {
 
+  //PROPERTIES
+  String serverURL = "https://localhost:8085/Hello";
+
+  //===============================================================================
+  // RUN
+  //===============================================================================
   @Override
   public void run(String... args) throws Exception {
 
-    //LOAD TRUST STORE
-    ClassPathResource trustStoreResource    = new ClassPathResource("ClientTrustStore.jks");
-    InputStream       trustStoreInputStream = trustStoreResource.getInputStream();
-    KeyStore          trustStore            = KeyStore.getInstance("JKS");
-                      trustStore.load(trustStoreInputStream, "mypassword".toCharArray());
+    //GET REQUEST FACTORY (for One-Way TLS)
+    HttpComponentsClientHttpRequestFactory requestFactory = UtilTLS.getRequestFactoryForTwoWayTLS();
 
-    //LOAD KEY STORE
-    ClassPathResource keyStoreResource      = new ClassPathResource("ClientKeyStore.jks");
-    InputStream       keyStoreInputStream   = keyStoreResource.getInputStream();
-    KeyStore          keyStore              = KeyStore.getInstance("JKS");
-                      keyStore.load(keyStoreInputStream, "mypassword".toCharArray());
-
-    //SPECIFY TRUST STORE
-    SSLContext sslContext = new SSLContextBuilder()
-      .loadTrustMaterial(trustStore, null)
-      .loadKeyMaterial  (keyStore, "mypassword".toCharArray())
-      .build();
-
-    //PLUMBING
-    SSLConnectionSocketFactory socketFactory = new SSLConnectionSocketFactory(
-      sslContext,
-      NoopHostnameVerifier.INSTANCE
-    );
-    CloseableHttpClient                    httpClient     = HttpClients.custom().setSSLSocketFactory(socketFactory).build();
-    HttpComponentsClientHttpRequestFactory requestFactory = new HttpComponentsClientHttpRequestFactory(httpClient);
-    RestTemplate                           restTemplate   = new RestTemplate();
-                                           restTemplate.setRequestFactory(requestFactory);
-
-    //CALL SERVER
-    String result = restTemplate.getForObject(new URI("https://localhost:8085/Hello"), String.class);
+    //SEND REQUEST
+    RestTemplate    restTemplate = new RestTemplate();
+                    restTemplate.setRequestFactory(requestFactory);
+    String result = restTemplate.getForObject(new URI(serverURL), String.class);
 
     //DISPLAY RESULT
     System.out.println(result);
